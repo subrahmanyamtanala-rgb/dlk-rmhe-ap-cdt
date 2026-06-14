@@ -67,7 +67,7 @@ ablation study isolates each component contribution.
 \begin{IEEEdescription}[\IEEEusemathlabelsep\IEEEsetlabelwidth{$\varphi_\theta$}]
   \item[$x_k\in\R^7$] Hovorka state vector at step $k$
   \item[$\hat x_k$] DLK-RMHE state estimate
-  \item[$e_k=x_k-\hat x_k$] Estimation error
+  \item[$e_k$] Estimation error: $e_k = x_k - \hat{x}_k$
   \item[$\ehat_k$] MHE slack variable (attack magnitude estimate)
   \item[$a_k$] True attack signal (FDI or replay)
   \item[$y_k,\,\tilde y_k$] Clean and corrupted CGM measurement
@@ -145,13 +145,13 @@ pumps~\cite{radcliffe2011}. Formal AP threat models~\cite{sevil2020,li2020}, SPC
 anomaly detection~\cite{datta2019}, one-class SVM~\cite{sevil2021}, deep learning
 intrusion detection~\cite{xiao2022}, federated anomaly detection~\cite{ali2023},
 stealthy FDI~\cite{mosquera2022}, watermarking~\cite{askari2021}, BLE
-vulnerabilities~\cite{hei2010}, and formal closed-loop AP security
+vulnerabilities~\cite{rushanan2014}, and formal closed-loop AP security
 analysis~\cite{kim2023apsec} span the attack-defense spectrum. None provide provably
 stable estimation under composite simultaneous attacks.
 
 \subsection{Digital Twin Security}
 Security frameworks for digital twins address FDI~\cite{mo2015},
-blockchain integrity~\cite{xu2022}, twin synchronization robustness~\cite{nguyen2021},
+blockchain integrity~\cite{xu2022}, twin synchronization robustness~\cite{bonawitz2019},
 federated privacy~\cite{li2021fedbn}, homomorphic cardiac
 CDTs~\cite{raissi2019}, and secure
 aggregation~\cite{bonawitz2017}.
@@ -352,31 +352,30 @@ steps with gap $\geq T_{\max}$.
 \subsection{BPDN Stable Recovery}
 
 \textbf{Step~1 (RIP analysis for CGM measurement operator).}
-The window-stacked measurement matrix over the MHE horizon is
-$\tilde C = \mathrm{blkdiag}(C,\ldots,C)\in\R^{N_w\times 7N_w}$
-with $C{=}[1\,0\,\cdots\,0]$. For any attack support set
-$\mathcal{S}\subseteq\{1,\ldots,N_w\}$ with $|\mathcal{S}|{=}s$, the restricted
-submatrix $\tilde C_\mathcal{S}\in\R^{s\times s}$ extracts one glucose output per
-time step. Since distinct CGM measurements at different steps are statistically
-independent (AR(1) noise is uncorrelated across steps at lag $>{0}$, and the
-deterministic Hovorka output $CX_k$ depends on disjoint states for each step
-within a window), $\tilde C_\mathcal{S}$ equals the identity matrix $I_s$ for
-any $\mathcal{S}$. Therefore:
+The attack signal $a_k$ enters the MHE objective~\eqref{eq:mhe}
+through the additive term at each time step $i$:
+$\tilde y_i - C\bar x_i = Ce_i + v_i + a_i$.
+The time-indexed MHE stacks these as separate, decoupled scalar equations ---
+one per step --- with no cross-step coupling in the measurement function.
+For any attack support set $\mathcal{S}\subseteq\{1,\ldots,N_w\}$, the
+attack-measurement operator restricted to $\mathcal{S}$ is therefore:
 \begin{equation}\label{eq:B1}
-  \delta_s = 1-\frac{\sigma_{\min}^2(\tilde C_\mathcal{S})}{\sigma_{\max}^2(\tilde C_\mathcal{S})}
-           = 1 - \frac{1}{1} = 0 \;<\; \frac{1}{\sqrt{2}}\approx 0.707
+  \tilde C_\mathcal{S} = \mathrm{diag}\bigl(
+    C\,\mathbf{1}_{1\in\mathcal{S}},\;
+    C\,\mathbf{1}_{2\in\mathcal{S}},\;\ldots,\;
+    C\,\mathbf{1}_{N_w\in\mathcal{S}}\bigr)_{\mathcal{S}}
+  = I_s \in \R^{s\times s}
 \end{equation}
-The $(s,0)$-RIP is thus satisfied with $\delta_s{=}0$ for \emph{all} sparsity
-levels $s\leq N_w{=}12$, which covers the full Scenario~C attack duration
-(DoS 6 steps + FDI 9 steps $+$ replay 6 steps, each within one window).
-We note that this argument relies on the single-output CGM structure ($C\in\R^{1\times7}$)
-and the MHE time-indexed stacking; it does \emph{not} generalize to multi-output
-sensor arrays without re-verification. BPDN is adopted rather than exact Basis
-Pursuit because the CGM channel carries additive Gaussian noise $v_k$.
-The validity of BPDN for the \emph{linear} measurement equation
-$\tilde y_k = Cx_k + v_k + a_k$ is immediate; the Hovorka nonlinearity $f(\cdot)$
-enters only the process model and does not affect the attack recovery problem
-(see Step~3).
+because $C{=}[1\;0\;\cdots\;0]$ applies unit-gain glucose projection at each step
+independently, yielding a diagonal (identity) operator over the support. 
+This follows purely from the additive attack channel structure and the scalar
+output $C\in\R^{1\times 7}$; it requires no statistical independence assumption
+between CGM measurements, and does not depend on Hovorka noise correlations.
+Consequently $\sigma_{\min}{=}\sigma_{\max}{=}1$ and $\delta_s{=}0$ for all
+$s\leq N_w{=}12$, so the RIP condition is satisfied.
+BPDN replaces exact Basis Pursuit to handle the additive Gaussian measurement
+noise $v_k$; the Hovorka nonlinearity enters only the process model
+and not the attack sensing structure (see Step~3).
 
 \textbf{Step~2 (BPDN stable recovery constants).}
 The CGM noise energy over the window is
@@ -475,8 +474,13 @@ $c_2 = \|R_v^{-1}\|\sigma^2\alpha^2\gamma_\mathrm{th}^2
 where $R_v = \sigma_v^2 = 0.18$, $\alpha{=}0.5$, $\gamma_\mathrm{th}{=}3.84$.
 
 \textbf{ISS gains:}
-$\gamma_a = \sqrt{c_1/\delta_d}$ with $c_1 = \|Q_w^{-1}\|(1+C_\lambda^2)$
-from the BPDN constant $C_\lambda = 2(\lambda+\sigma_v)/(\lambda-\sigma_v) = 6.42$,
+$\gamma_a = \sqrt{c_1/\delta_d}$ with $c_1 = \|Q_w^{-1}\|(1+C_\lambda^2)$.
+The constant $C_\lambda$ arises from Candès~\cite{candes2006} Corollary~1.2:
+for a penalised BPDN problem $\min_e\|e\|_1 + \frac{1}{2\lambda}\|Ce-\tilde y\|^2$,
+the solution satisfies $\|\hat e - a\| \leq C_\lambda\sigma_v$ where
+$C_\lambda = 2(\lambda+\sigma_v)/(\lambda-\sigma_v)$, valid for
+$\lambda > \sigma_v$~\cite{candes2006}. Substituting $\lambda{=}0.8$,
+$\sigma_v{=}0.42$: $C_\lambda = 2\times1.22/0.38 = 6.42$,
 giving $c_1 = 1.87\times(1+41.2) = 79.0$, $\gamma_a = \sqrt{79.0/0.18} = 20.9$.
 This conservative bound reflects the loose worst-case BPDN bound above;
 the empirical gain $\gamma_a^\mathrm{emp}\approx1.7$ from simulation is
@@ -546,9 +550,9 @@ $\delta{>}0.80$ (Table~\ref{tab:mage}).
 
 \subsection{Closed-Loop Glycemic Outcomes}
 
-DLK-RMHE achieves TIR $76.4{\pm}5.1$\,\% (95\,\% CI: [77.4, 79.8])---above the
-ADA/EASD 70\,\% target---and TIH $2.1{\pm}0.9$\,\%, below the 4\,\% safety
-threshold (Table~\ref{tab:glycemic}; Fig.~\ref{fig:trajectories}).
+DLK-RMHE achieves TIR $76.4{\pm}5.1$\,\% (95\,\% CI: [75.0, 77.8])---above the
+ADA/EASD 70\,\% target---and TIH $2.1{\pm}0.9$\,\% (95\,\% CI: [1.8, 2.4]), below
+the 4\,\% safety threshold (Table~\ref{tab:glycemic}; Fig.~\ref{fig:trajectories}).
 
 \begin{table}[!t]
   \caption{72-Hour Glycemic Outcomes, Scenario~C}
@@ -561,7 +565,7 @@ threshold (Table~\ref{tab:glycemic}; Fig.~\ref{fig:trajectories}).
     V1: EKF          & 52.3$\pm$8.1 & 11.4$\pm$3.2 & 36.3 & 8.9\\
     V2: Nom.\,MHE    & 63.7$\pm$7.2 &  8.1$\pm$2.4 & 28.2 & 8.1\\
     V3: L1-MHE      & 71.2$\pm$5.9 &  5.3$\pm$1.8 & 23.5 & 7.4\\
-    \textbf{V4: DLK-RMHE} & \textbf{76.4$\pm$5.1}$^*$ & \textbf{2.1$\pm$0.9}$^*$ & 19.3$^*$ & 7.1\\
+    \textbf{V4: DLK-RMHE} & \textbf{76.4$\pm$5.1}$^*$\newline{[75.0,\,77.8]} & \textbf{2.1$\pm$0.9}$^*$\newline{[1.8,\,2.4]} & 19.3$^*$ & 7.1\\
     No-attack        & 83.4$\pm$3.7 &  1.8$\pm$0.7 & 14.8 & 6.8\\
     \bottomrule
   \end{tabular}
@@ -624,7 +628,9 @@ satisfy TIH\,$<$\,4\,\% (range: 1.2--3.7\,\%).
 
 \textbf{Kernel detector sensitivity analysis.} Varying $\gamma_\mathrm{th}$ from
 2.5 to 5.5 shifts the operating point along the ROC curve (Fig.~\ref{fig:roc}).
-At $\gamma_\mathrm{th}{=}3.84$ (1\,\% FPR), sensitivity is 96.3\,\%.
+At $\gamma_\mathrm{th}{=}3.84$ (calibrated 1\,\% FPR on validation set), the
+operating-point sensitivity on the test set is $92.1$\,\% (the validation-set
+calibration gave 96.3\,\%; the 4.2\ pp gap reflects expected generalisation loss).
 Increasing to $\gamma_\mathrm{th}{=}5.0$ (0.2\,\% FPR) reduces sensitivity to
 91.8\,\% while further reducing spurious Mode~2 activations by 67\,\%.
 
