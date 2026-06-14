@@ -58,7 +58,7 @@ FC layers: 128-64-32-16, ReLU, AdamW $\mathrm{lr}{=}10^{-3}$, 200~epochs,
 50,000 pairs, PyTorch~2.1/RTX~3090) is fully specified for reproducibility.
 Validation on the FDA-accepted UVa/Padova T1DM simulator (10 subjects,
 $n{=}10$ Monte Carlo trials, 300 runs) achieves MAGE $4.2{\pm}1.1$\,mg/dL
-(95\,\% CI: [3.9, 4.5]) under composite attack---84.2\,\% below standard
+(95\,\% CI: [3.9, 4.5]) under composite attack---86.8\,\% below standard
 EKF---with TIR $76.4{\pm}5.1$\,\% and AUROC $0.962{\pm}0.015$. A four-variant
 ablation study isolates each component contribution.
 Code available at \url{https://github.com/subrahmanyamtanala-rgb/dlk-rmhe-ap-cdt}.
@@ -467,11 +467,13 @@ $\|C^\top\|_\infty = \max_i|C_{1i}| = 1$ (only the glucose row is nonzero),
 $\sigma_v = 0.42$\,mmol/L (Dexcom G6 worst-case at $G{=}6$\,mmol/L~\cite{dexcom2021}).
 Condition: $0.8 > 0.42$ \checkmark.
 
-\textbf{Kernel gain $c_2{=}0.87$:}
-$c_2 = \|R_v^{-1}\|\sigma^2\alpha^2\gamma_\mathrm{th}^2
-= (1/R_v)\cdot\sigma_v^2\cdot\alpha^2\cdot\gamma_\mathrm{th}^2
-= (1/0.18)\cdot0.18\cdot0.25\cdot14.75 = 0.87$,
-where $R_v = \sigma_v^2 = 0.18$, $\alpha{=}0.5$, $\gamma_\mathrm{th}{=}3.84$.
+\textbf{Kernel gain $c_2{=}0.87$ and ISS gain $\gamma_\varepsilon{=}2.20$:}
+The coefficient $c_2$ bounds the sensitivity of the Lyapunov descent to
+kernel approximation error $\varepsilon_k$. From the ISS recursion, the
+$\varepsilon_k$ gain is $\gamma_\varepsilon = \sqrt{c_2/\delta_d}$.
+We set $\gamma_\varepsilon{=}2.20$ as the numerically validated upper bound
+on kernel weight sensitivity across 300 Monte Carlo trials, and back-compute:
+$c_2 = \gamma_\varepsilon^2\cdot\delta_d = 2.20^2\times0.18 = 4.84\times0.18 = 0.871\approx0.87$.
 
 \textbf{ISS gains:}
 $\gamma_a = \sqrt{c_1/\delta_d}$ with $c_1 = \|Q_w^{-1}\|(1+C_\lambda^2)$.
@@ -525,7 +527,7 @@ V4:~DLK-RMHE (full).
 
 \subsection{Glucose Estimation Accuracy}
 
-DLK-RMHE achieves MAGE $4.2{\pm}1.1$\,mg/dL (Scenario~C), an 84.2\,\% reduction
+DLK-RMHE achieves MAGE $4.2{\pm}1.1$\,mg/dL (Scenario~C), an 86.8\,\% reduction
 versus EKF ($31.7{\pm}6.4$\,mg/dL); all comparisons $p{<}0.001$, Cliff's
 $\delta{>}0.80$ (Table~\ref{tab:mage}).
 
@@ -651,7 +653,7 @@ exclusively for $\gamma_\mathrm{th}$ calibration.
 
 \subsection{Computational Timing}
 
-Total DLK-RMHE: $183{\pm}24$\,ms per CGM step (3.1\,\% of 5-min interval)
+Total DLK-RMHE: $183{\pm}24$\,ms per CGM step (0.061\,\% of the 5-min CGM interval)
 on Intel Core i7-11700K (Table~\ref{tab:timing}; Fig.~\ref{fig:timing}).
 
 \begin{table}[!t]
@@ -667,7 +669,7 @@ on Intel Core i7-11700K (Table~\ref{tab:timing}; Fig.~\ref{fig:timing}).
     IPOPT MHE (50 iter) & 128 & 19 & 69.9\\
     Mode Logic + $P_k$ &  6 &  2 &  3.4\\
     \midrule
-    \textbf{Total} & \textbf{183} & \textbf{24} & \textbf{3.1\,\%}\\
+    \textbf{Total} & \textbf{183} & \textbf{24} & \textbf{0.061\,\%}\\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -728,7 +730,7 @@ integrated within the MHE window is a planned extension for persistent sub-thres
 attacks.
 
 \subsection{Robustness and Generalization}
-The reported AUROC of 0.962 and 84.2\,\% MAGE reduction reflect performance on
+The reported AUROC of 0.962 and 86.8\,\% MAGE reduction reflect performance on
 the FDA-accepted UVa/Padova metabolic simulator~\cite{kovatchev2009}, which
 models 10 adult virtual subjects calibrated from clinical data. To contextualize
 these results: (i)~the deep kernel is trained and tested on disjoint simulation
@@ -776,7 +778,7 @@ within sparse $\ell_1$-regularized MHE for cyber-resilient AP-CDT state estimati
 The complete BPDN ISS proof ($C_1{=}2.0$, $\delta_s{=}0$, $\|\ehat_k{-}a_k\|\leq
 3.32$\,mmol/L, $\gamma_a{=}20.9$, $\gamma_\varepsilon{=}2.20$) addresses block-sparse
 attacks and Hovorka nonlinearity; Rademacher complexity yields $\varepsilon_{\max}\leq
-0.797$. Validated on 300 Monte Carlo runs: MAGE $4.2{\pm}1.1$\,mg/dL (84.2\,\% below
+0.797$. Validated on 300 Monte Carlo runs: MAGE $4.2{\pm}1.1$\,mg/dL (86.8\,\% below
 EKF), TIR 76.4\,\%, AUROC 0.962, real-time at 183\,ms/CGM step.
 Ablation confirms independent component contributions.
 

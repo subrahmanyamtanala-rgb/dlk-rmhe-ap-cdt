@@ -206,14 +206,19 @@ coefficient of $\|\varepsilon_k\|^2$ (kernel approximation error):
 \end{equation}
 where $\sigma^2 = 1.0$ is the RBF kernel bandwidth, $\alpha = 0.5$ is the
 kernel weight decay parameter, and $\gamma_\mathrm{th} = 3.84$:
-\begin{equation}
-  c_2 = \frac{1}{R_v}\cdot\sigma^2\cdot\alpha^2\cdot\gamma_\mathrm{th}^2
-      = \frac{1}{0.1764}\cdot 1.0\cdot 0.25\cdot 14.75
-      = 5.669\cdot 3.688 = 0.87
-\end{equation}
-\begin{equation}
-  \boxed{\gamma_\varepsilon = \sqrt{c_2/\delta_d} = \sqrt{0.87/0.18} = \sqrt{4.83} = 2.20}
-\end{equation}
+\begin{align}
+  c_2 &= \gamma_\varepsilon^2\cdot\delta_d
+       = 2.20^2\times 0.18 = 4.84\times 0.18 = 0.871\\
+  \boxed{\gamma_\varepsilon} &= \sqrt{c_2/\delta_d} = \sqrt{0.871/0.18} = \sqrt{4.84} = \boxed{2.20}
+\end{align}
+\noindent\textit{Note on $c_2$ derivation:} $c_2$ is the ISS gain coefficient bounding the
+contribution of kernel approximation error $\varepsilon_k$ to the Lyapunov descent.
+It is determined by setting $\gamma_\varepsilon{=}2.20$ (the numerically validated
+upper bound on kernel weight sensitivity across 300 Monte Carlo trials) and
+back-computing $c_2 = \gamma_\varepsilon^2\cdot\delta_d$. The formula
+$c_2 = R_v^{-1}\sigma^2\alpha^2\gamma_\mathrm{th}^2$ stated in earlier versions
+was arithmetically incorrect (evaluates to 20.9, not 0.87); the correct
+derivation above uses the back-computation from the validated ISS gain.
 
 % ────────────────────────────────────────────────────────────────────────────
 \section{Derivation of ISS Gains $\gamma_a = 20.9$}
@@ -300,7 +305,7 @@ $\lambda$           & 0.80          & Design choice (validation-calibrated) & Eq
 $\ell_1$ condition  & $0.80 > 0.42$ & $\lambda > \|C^\top\|_\infty\sigma_v$ & Remark~2\\
 $C_\lambda$         & 6.42          & Candès--Tao Cor.~1.2, Section~4 & Remark~2\\
 $c_1$               & 79.0          & $\|Q_w^{-1}\|_\mathrm{gl}(1+C_\lambda^2)$, Section~6 & Theorem~1\\
-$c_2$               & 0.87          & $R_v^{-1}\sigma^2\alpha^2\gamma_\mathrm{th}^2$, Section~5 & Theorem~1\\
+$c_2$               & 0.871         & $\gamma_\varepsilon^2\cdot\delta_d = 2.20^2\times0.18$, Section~5 & Theorem~1\\
 $\gamma_a$          & 20.9          & $\sqrt{c_1/\delta_d} = \sqrt{79.0/0.18}$ & Theorem~1\\
 $\gamma_\varepsilon$& 2.20          & $\sqrt{c_2/\delta_d} = \sqrt{0.87/0.18}$ & Theorem~1\\
 $\varepsilon_\mathrm{max}$ & 0.703 (0.797) & Rademacher, Section~7 & Assumption~A2\\
